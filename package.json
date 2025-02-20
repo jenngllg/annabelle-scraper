@@ -1,0 +1,13 @@
+{
+    "name": "anna-belle-scraper",
+    "version": "1.0.0",
+    "description": "Scraper for Anna'belle Institut Planity",
+    "main": "scraper.js",
+    "scripts": {
+      "start": "node scraper.js"
+    },
+    "dependencies": {
+      "puppeteer": "^23.0.0",
+      "axios": "^1.7.0"
+    }
+  }
