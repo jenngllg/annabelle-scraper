@@ -767,7 +767,7 @@
     "label": "Entretien : remplissage + vernis ou french",
     "description": "",
     "duration": "45min",
-    "price": "39 €"
+    "price": "41 €"
   },
   {
     "family": "Mains et Pieds",
@@ -1279,5 +1279,12 @@
     "description": "",
     "duration": "1h",
     "price": "72 €"
+  },
+  {
+    "family": "Visage",
+    "label": "Skinshooter Yeux",
+    "description": "",
+    "duration": "30min",
+    "price": "35 €"
   }
 ]

@@ -16,7 +16,7 @@ function getCurrentDateTime() {
     return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
 }
 
-function getLatestFile(prefix = 'annabelle-screenshot') {
+function getLatestFile(prefix = 'annabelle-snapshot') {
     const files = fs.readdirSync('.')
         .filter(file => file.startsWith(prefix) && file.endsWith('.json'))
         .sort()
@@ -125,8 +125,7 @@ async function verifyPageContent(page) {
         console.log('Body loaded, waiting for services...');
         await page.waitForSelector('[class*="service-module_name"]', { timeout: 30000 });
     } catch (error) {
-        console.error('Failed to find service elements. Saving screenshot and HTML for debugging...');
-        await page.screenshot({ path: 'error-screenshot.png' });
+        console.error('Failed to find service elements. Saving HTML for debugging...');
         const html = await page.content();
         fs.writeFileSync('error-page.html', html);
         throw error;
@@ -182,7 +181,7 @@ async function extractServices(page) {
 // Data Saving Function
 async function saveAndCompareData(servicesData) {
     const currentDateTime = getCurrentDateTime();
-    const fileName = `annabelle-screenshot-${currentDateTime}.json`;
+    const fileName = `annabelle-snapshot-${currentDateTime}.json`;
     const sortedNewData = sortServices(servicesData);
     const jsonData = JSON.stringify(sortedNewData, null, 2);
     const latestFile = getLatestFile();
