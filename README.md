@@ -9,8 +9,5 @@ This is a Node.js script that scrapes service data from the Annabelle Institut p
 - Saves snapshots as timestamped JSON files
 
 ## Prerequisites
-- Node.js (v14 or higher recommended)
+- Node.js (v20 or higher recommended)
 - npm (Node Package Manager)
-
-## Installation
-1. Clone this repository:
