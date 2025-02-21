@@ -1974,23 +1974,23 @@
   },
   {
     "family": "Visage",
-    "label": "Massage facial",
+    "label": "Mesotherapie virtuelle Skinshooter visage et cou",
     "items": [
       {
-        "description": "Massage facial esthétique global",
-        "duration": "20min",
-        "price": "20 €"
+        "description": "[TEST MODIFICATION DESCRIPTION]",
+        "duration": "1h",
+        "price": "72 €"
       }
     ]
   },
   {
-    "family": "Visage",
-    "label": "Mesotherapie virtuelle Skinshooter visage et cou",
+    "family": "[TEST RAJOUT FAMILLE NON EXISTANTE]",
+    "label": "[TEST RAJOUT PRESTATION NON EXISTANTE]",
     "items": [
       {
-        "description": "",
-        "duration": "1h",
-        "price": "72 €"
+        "description": "[TEST RAJOUT DESCRIPTION]",
+        "duration": "[TEST RAJOUT DUREE]",
+        "price": "[TEST RAJOUT PRIX]"
       }
     ]
   },
@@ -2002,6 +2002,11 @@
         "description": "",
         "duration": "30min",
         "price": "35 €"
+      },
+      {
+        "description": "[TEST RAJOUT FAMILLE DEJA EXISTANTE]",
+        "duration": "40min",
+        "price": "45 €"
       }
     ]
   }
