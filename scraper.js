@@ -26,19 +26,18 @@ function getLatestFile(prefix = 'annabelle-snapshot') {
 
 // Data Processing Functions
 function sortServices(services) {
-    return services
-        .map(service => ({
-            family: service.family,
-            label: service.label,
-            description: service.description,
-            duration: service.duration,
-            price: service.price
-        }))
-        .sort((a, b) => {
-            const keyA = `${a.family}|${a.label}|${a.description}|${a.duration}|${a.price}`;
-            const keyB = `${b.family}|${b.label}|${b.description}|${b.duration}|${b.price}`;
+    return services.sort((a, b) => {
+        const keyA = `${a.family}|${a.label}`;
+        const keyB = `${b.family}|${b.label}`;
+        return keyA.localeCompare(keyB);
+    }).map(service => ({
+        ...service,
+        items: service.items.sort((a, b) => {
+            const keyA = `${a.description}|${a.duration}|${a.price}`;
+            const keyB = `${b.description}|${b.duration}|${b.price}`;
             return keyA.localeCompare(keyB);
-        });
+        })
+    }));
 }
 
 function detectChanges(oldServices, newServices) {
@@ -51,7 +50,7 @@ function detectChanges(oldServices, newServices) {
         const oldService = oldMap.get(key);
         if (!oldService) {
             changes.added.push(newService);
-        } else if (JSON.stringify(oldService) !== JSON.stringify(newService)) {
+        } else if (JSON.stringify(oldService.items) !== JSON.stringify(newService.items)) {
             changes.modified.push({ old: oldService, new: newService });
         }
     });
@@ -71,15 +70,18 @@ async function sendChangesToDiscord(changes, oldFile, newFile) {
     let message = `**Changes detected** between ${oldFile} and ${newFile}:\n`;
     if (changes.added.length > 0) {
         message += `\n**Additions**:\n` + changes.added.map(service =>
-            `- ${service.family} : ${service.label} (${service.price}, ${service.duration})`).join('\n');
+            `- ${service.family} : ${service.label} (${service.items.map(item => `${item.price}, ${item.duration}`).join(', ')})`
+        ).join('\n');
     }
     if (changes.modified.length > 0) {
         message += `\n**Modifications**:\n` + changes.modified.map(change =>
-            `- ${change.old.family} : ${change.old.label}\n  Old: ${change.old.price}, ${change.old.duration}\n  New: ${change.new.price}, ${change.new.duration}`).join('\n');
+            `- ${change.old.family} : ${change.old.label}\n  Old: ${change.old.items.map(item => `${item.price}, ${item.duration}`).join(', ')}\n  New: ${change.new.items.map(item => `${item.price}, ${item.duration}`).join(', ')}`
+        ).join('\n');
     }
     if (changes.removed.length > 0) {
         message += `\n**Deletions**:\n` + changes.removed.map(service =>
-            `- ${service.family} : ${service.label} (${service.price}, ${service.duration})`).join('\n');
+            `- ${service.family} : ${service.label} (${service.items.map(item => `${item.price}, ${item.duration}`).join(', ')})`
+        ).join('\n');
     }
     if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
         message += "\nNo specific changes detected";
@@ -156,12 +158,14 @@ async function extractServices(page) {
         const categoryTitles = document.querySelectorAll('[class*="service_set-module_title"]');
         console.log(`Found ${categoryTitles.length} category titles`);
 
+        const groupedData = new Map();
+
         categoryTitles.forEach(categoryTitle => {
-            const categoryName = categoryTitle.textContent.trim() || 'No category';
+            const family = categoryTitle.textContent.trim() || 'No category';
             const categoryContainer = categoryTitle.parentElement;
             const services = categoryContainer.querySelectorAll('[class*="service-module_businessService"]');
 
-            console.log(`Found ${services.length} cards in category: ${categoryName}`);
+            console.log(`Found ${services.length} cards in category: ${family}`);
             services.forEach(service => {
                 const label = service.querySelector('[class*="service-module_name"]')?.textContent.trim() || '';
                 const description = service.querySelector('[class*="service-module_details"]')?.textContent.trim() || '';
@@ -169,12 +173,20 @@ async function extractServices(page) {
                 const price = service.querySelector('[class*="service-module_price"]')?.textContent.trim() || '';
 
                 if (label) {
-                    results.push({ family: categoryName, label, description, duration, price });
+                    const key = `${family}|${label}`;
+                    if (!groupedData.has(key)) {
+                        groupedData.set(key, {
+                            family,
+                            label,
+                            items: []
+                        });
+                    }
+                    groupedData.get(key).items.push({ description, duration, price });
                 }
             });
         });
 
-        return results;
+        return Array.from(groupedData.values());
     });
 }
 
@@ -215,7 +227,7 @@ async function scrapePlanityAnnaBelle() {
         const page = await navigatePage(browser);
         await verifyPageContent(page);
         const servicesData = await extractServices(page);
-        console.log(`Extracted ${servicesData.length} services`);
+        console.log(`Extracted ${servicesData.length} unique family-label groups`);
         await saveAndCompareData(servicesData);
         console.log('Scraping completed successfully');
     } catch (error) {
