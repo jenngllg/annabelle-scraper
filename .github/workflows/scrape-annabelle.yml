@@ -2,7 +2,7 @@ name: Scrape Annabelle Institut
 on:
   workflow_dispatch:
   schedule:
-    - cron: '59 23 * * FRI'
+    - cron: '0 0 * * *'
 jobs:
   scrape:
     runs-on: ubuntu-latest
