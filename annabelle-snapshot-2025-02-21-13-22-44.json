@@ -1974,6 +1974,22 @@
   },
   {
     "family": "Visage",
+    "label": "Massage facial",
+    "items": [
+      {
+        "description": "Massage facial esthétique global [DELETION]",
+        "duration": "20min",
+        "price": "20 €"
+      },
+      {
+        "description": "Massage facial esthétique global",
+        "duration": "20min",
+        "price": "20 €"
+      }
+    ]
+  },
+  {
+    "family": "Visage",
     "label": "Mesotherapie virtuelle Skinshooter visage et cou",
     "items": [
       {
