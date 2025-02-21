@@ -40,62 +40,59 @@ function sortServices(services) {
     }));
 }
 
-function detectChanges(oldServices, newServices) {
+function detectChanges(previousServices, currentServices) {
     const changes = { added: [], modified: [], removed: [] };
-    const oldMap = new Map(oldServices.map(s => [`${s.family}|${s.label}`, s]));
-    const newMap = new Map(newServices.map(s => [`${s.family}|${s.label}`, s]));
+    const previousMap = new Map(previousServices.map(s => [`${s.family}|${s.label}`, s]));
+    const currentMap = new Map(currentServices.map(s => [`${s.family}|${s.label}`, s]));
 
-    // Detect added and modified services
-    newServices.forEach(newService => {
-        const key = `${newService.family}|${newService.label}`;
-        const oldService = oldMap.get(key);
-        if (!oldService) {
-            changes.added.push(newService);
-        } else if (JSON.stringify(oldService.items) !== JSON.stringify(newService.items)) {
-            const oldItemsMap = new Map(oldService.items.map(item => [JSON.stringify(item), item]));
-            const newItemsMap = new Map(newService.items.map(item => [JSON.stringify(item), item]));
-            
-            const modifiedItems = [];
-            newService.items.forEach(newItem => {
-                const newItemKey = JSON.stringify(newItem);
-                if (!oldItemsMap.has(newItemKey)) {
-                    const matchingOldItem = oldService.items.find(oldItem => 
-                        oldItem.duration === newItem.duration || oldItem.price === newItem.price
+    // Compare current vs previous for each family|label group
+    currentServices.forEach(currentService => {
+        const key = `${currentService.family}|${currentService.label}`;
+        const previousService = previousMap.get(key);
+
+        if (previousService) { // Family|label exists in both
+            const previousItemsMap = new Map(previousService.items.map(item => [JSON.stringify(item), item]));
+            const currentItemsMap = new Map(currentService.items.map(item => [JSON.stringify(item), item]));
+
+            // Detect added items
+            currentService.items.forEach(currentItem => {
+                const currentItemKey = JSON.stringify(currentItem);
+                if (!previousItemsMap.has(currentItemKey)) {
+                    const matchingPreviousItem = previousService.items.find(prevItem => 
+                        prevItem.duration === currentItem.duration || prevItem.price === currentItem.price
                     );
-                    if (matchingOldItem) {
-                        modifiedItems.push({ before: matchingOldItem, after: newItem });
+                    if (matchingPreviousItem) {
+                        changes.modified.push({
+                            family: currentService.family,
+                            label: currentService.label,
+                            items: [{ before: matchingPreviousItem, after: currentItem }]
+                        });
                     } else {
-                        // If no clear "before" match, treat as new within this group
-                        modifiedItems.push({ before: null, after: newItem });
+                        changes.added.push({
+                            family: currentService.family,
+                            label: currentService.label,
+                            item: currentItem
+                        });
                     }
                 }
             });
-            oldService.items.forEach(oldItem => {
-                const oldItemKey = JSON.stringify(oldItem);
-                if (!newItemsMap.has(oldItemKey)) {
-                    const matchingNewItem = newService.items.find(newItem => 
-                        newItem.duration === oldItem.duration || newItem.price === oldItem.price
+
+            // Detect removed items
+            previousService.items.forEach(prevItem => {
+                const prevItemKey = JSON.stringify(prevItem);
+                if (!currentItemsMap.has(prevItemKey)) {
+                    const matchingCurrentItem = currentService.items.find(currItem => 
+                        currItem.duration === prevItem.duration || currItem.price === prevItem.price
                     );
-                    if (matchingNewItem && !modifiedItems.some(m => m.before === oldItem)) {
-                        modifiedItems.push({ before: oldItem, after: matchingNewItem });
-                    } else if (!modifiedItems.some(m => m.before === oldItem)) {
-                        // If no "after" match, treat as removed within this group
-                        modifiedItems.push({ before: oldItem, after: null });
+                    if (!matchingCurrentItem) {
+                        changes.removed.push({
+                            family: previousService.family,
+                            label: previousService.label,
+                            item: prevItem
+                        });
                     }
                 }
             });
-
-            if (modifiedItems.length > 0) {
-                changes.modified.push({ family: newService.family, label: newService.label, items: modifiedItems });
-            }
-        }
-    });
-
-    // Detect removed services
-    oldServices.forEach(oldService => {
-        const key = `${oldService.family}|${oldService.label}`;
-        if (!newMap.has(key)) {
-            changes.removed.push(oldService);
         }
     });
 
@@ -103,22 +100,43 @@ function detectChanges(oldServices, newServices) {
 }
 
 // Discord Notification Function
-async function sendChangesToDiscord(changes, oldFile, newFile) {
-    let message = `**Changes detected between ${oldFile} and ${newFile}:**\n`;
+async function sendChangesToDiscord(changes, previousFile, currentFile) {
+    let message = `**Changes detected between ${previousFile} and ${currentFile}:**\n`;
 
     if (changes.removed.length > 0) {
         message += `\n**Removed services**:\n`;
-        message += `\`\`\`json\n${JSON.stringify(changes.removed, null, 2)}\n\`\`\``;
+        message += `\`\`\`json\n${JSON.stringify(
+            changes.removed.map(change => ({
+                family: change.family,
+                label: change.label,
+                items: [change.item]
+            })),
+            null, 2
+        )}\n\`\`\``;
     }
 
     if (changes.added.length > 0) {
         message += `\n**New services**:\n`;
-        message += `\`\`\`json\n${JSON.stringify(changes.added, null, 2)}\n\`\`\``;
+        message += `\`\`\`json\n${JSON.stringify(
+            changes.added.map(change => ({
+                family: change.family,
+                label: change.label,
+                items: [change.item]
+            })),
+            null, 2
+        )}\n\`\`\``;
     }
 
     if (changes.modified.length > 0) {
         message += `\n**Updated services**:\n`;
-        message += `\`\`\`json\n${JSON.stringify(changes.modified, null, 2)}\n\`\`\``;
+        message += `\`\`\`json\n${JSON.stringify(
+            changes.modified.map(change => ({
+                family: change.family,
+                label: change.label,
+                items: change.items
+            })),
+            null, 2
+        )}\n\`\`\``;
     }
 
     if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
@@ -126,7 +144,6 @@ async function sendChangesToDiscord(changes, oldFile, newFile) {
     }
 
     try {
-        // Split message if it exceeds Discord's 2000 character limit
         const messages = [];
         let currentMessage = '';
         for (const line of message.split('\n')) {
@@ -246,29 +263,29 @@ async function extractServices(page) {
 // Data Saving Function
 async function saveAndCompareData(servicesData) {
     const currentDateTime = getCurrentDateTime();
-    const fileName = `annabelle-snapshot-${currentDateTime}.json`;
-    const sortedNewData = sortServices(servicesData);
-    const jsonData = JSON.stringify(sortedNewData, null, 2);
-    const latestFile = getLatestFile();
+    const currentFile = `annabelle-snapshot-${currentDateTime}.json`;
+    const sortedCurrentData = sortServices(servicesData);
+    const jsonData = JSON.stringify(sortedCurrentData, null, 2);
+    const previousFile = getLatestFile();
     let shouldSave = true;
 
-    if (latestFile) {
-        const previousRawData = fs.readFileSync(latestFile, 'utf8');
+    if (previousFile) {
+        const previousRawData = fs.readFileSync(previousFile, 'utf8');
         const previousData = JSON.parse(previousRawData);
         const sortedPreviousData = sortServices(previousData);
 
-        if (JSON.stringify(sortedPreviousData) === JSON.stringify(sortedNewData)) {
+        if (JSON.stringify(sortedPreviousData) === JSON.stringify(sortedCurrentData)) {
             shouldSave = false;
             console.log('Data is identical to the previous file (order-independent), no save performed.');
         } else {
             const changes = detectChanges(previousData, servicesData);
-            await sendChangesToDiscord(changes, latestFile, fileName);
+            await sendChangesToDiscord(changes, previousFile, currentFile);
         }
     }
 
     if (shouldSave) {
-        fs.writeFileSync(fileName, jsonData);
-        console.log(`Data has been saved to ${fileName}`);
+        fs.writeFileSync(currentFile, jsonData);
+        console.log(`Data has been saved to ${currentFile}`);
     }
 }
 
