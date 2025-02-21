@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install Dependencies
-        run: npm install puppeteer fs axios
+        run: npm install
       - name: Install Puppeteer Dependencies
         run: |
           sudo apt-get update
