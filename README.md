@@ -1,16 +1,16 @@
-# Anna Belle Scraper
+# Planity Annabelle Scraper
 
-This project is an automated scraping script that extracts service details from the Anna Belle Institut page on [Planity](https://www.planity.com/anna-belle-institut-68000-colmar) and saves them as JSON files. 
-It detects changes (additions, modifications, deletions) compared to the previous scrape and sends those differences to a Discord channel via a webhook.
+This is a Node.js script that scrapes service data from the Annabelle Institut page on Planity.com and tracks changes over time, sending updates to a Discord webhook.
 
 ## Features
-- Scrapes service families, labels, descriptions, durations, and prices.
-- Saves data in timestamped JSON files (e.g., `anna-belle-services-2025-02-20-15-05-00.json`).
-- Performs order-independent comparison with the previous file to detect changes.
-- Sends only the changes (additions, modifications, deletions) to Discord.
-- Automated execution via GitHub Actions.
+- Scrapes service information including category, name, description, duration, and price
+- Compares new data with previous scrape to detect changes (additions, modifications, deletions)
+- Sends detailed change notifications to Discord
+- Saves snapshots as timestamped JSON files
 
 ## Prerequisites
-- [Node.js](https://nodejs.org/) (version 20 or higher recommended).
-- Dependencies: `puppeteer` and `axios` (installed via `npm install`).
-- A Discord webhook URL for notifications.
+- Node.js (v14 or higher recommended)
+- npm (Node Package Manager)
+
+## Installation
+1. Clone this repository:

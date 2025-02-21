@@ -4,10 +4,10 @@
     "description": "Scraper for Anna'belle Institut Planity",
     "main": "scraper.js",
     "scripts": {
-      "start": "node scraper.js"
+        "start": "node scraper.js"
     },
     "dependencies": {
-      "puppeteer": "^23.0.0",
-      "axios": "^1.7.0"
+        "axios": "^1.7.9",
+        "puppeteer": "^23.11.1"
     }
-  }
+}
