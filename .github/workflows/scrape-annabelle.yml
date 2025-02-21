@@ -27,9 +27,12 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add *.json
-          git add *.html *.png || true # Add debug files if they exist
-          git commit -m "Add new scrape results - $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
-          git push
+          git add *.json *.html *.png || true
+          if git status --porcelain | grep -q .; then
+            git commit -m "Add new scrape results - $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+          else
+            echo "No changes to commit"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
