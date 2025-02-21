@@ -45,16 +45,53 @@ function detectChanges(oldServices, newServices) {
     const oldMap = new Map(oldServices.map(s => [`${s.family}|${s.label}`, s]));
     const newMap = new Map(newServices.map(s => [`${s.family}|${s.label}`, s]));
 
+    // Detect added and modified services
     newServices.forEach(newService => {
         const key = `${newService.family}|${newService.label}`;
         const oldService = oldMap.get(key);
         if (!oldService) {
             changes.added.push(newService);
         } else if (JSON.stringify(oldService.items) !== JSON.stringify(newService.items)) {
-            changes.modified.push({ old: oldService, new: newService });
+            const oldItemsMap = new Map(oldService.items.map(item => [JSON.stringify(item), item]));
+            const newItemsMap = new Map(newService.items.map(item => [JSON.stringify(item), item]));
+            
+            const modifiedItems = [];
+            newService.items.forEach(newItem => {
+                const newItemKey = JSON.stringify(newItem);
+                if (!oldItemsMap.has(newItemKey)) {
+                    const matchingOldItem = oldService.items.find(oldItem => 
+                        oldItem.duration === newItem.duration || oldItem.price === newItem.price
+                    );
+                    if (matchingOldItem) {
+                        modifiedItems.push({ before: matchingOldItem, after: newItem });
+                    } else {
+                        // If no clear "before" match, treat as new within this group
+                        modifiedItems.push({ before: null, after: newItem });
+                    }
+                }
+            });
+            oldService.items.forEach(oldItem => {
+                const oldItemKey = JSON.stringify(oldItem);
+                if (!newItemsMap.has(oldItemKey)) {
+                    const matchingNewItem = newService.items.find(newItem => 
+                        newItem.duration === oldItem.duration || newItem.price === oldItem.price
+                    );
+                    if (matchingNewItem && !modifiedItems.some(m => m.before === oldItem)) {
+                        modifiedItems.push({ before: oldItem, after: matchingNewItem });
+                    } else if (!modifiedItems.some(m => m.before === oldItem)) {
+                        // If no "after" match, treat as removed within this group
+                        modifiedItems.push({ before: oldItem, after: null });
+                    }
+                }
+            });
+
+            if (modifiedItems.length > 0) {
+                changes.modified.push({ family: newService.family, label: newService.label, items: modifiedItems });
+            }
         }
     });
 
+    // Detect removed services
     oldServices.forEach(oldService => {
         const key = `${oldService.family}|${oldService.label}`;
         if (!newMap.has(key)) {
@@ -67,28 +104,44 @@ function detectChanges(oldServices, newServices) {
 
 // Discord Notification Function
 async function sendChangesToDiscord(changes, oldFile, newFile) {
-    let message = `**Changes detected** between ${oldFile} and ${newFile}:\n`;
-    if (changes.added.length > 0) {
-        message += `\n**Additions**:\n` + changes.added.map(service =>
-            `- ${service.family} : ${service.label} (${service.items.map(item => `${item.price}, ${item.duration}`).join(', ')})`
-        ).join('\n');
-    }
-    if (changes.modified.length > 0) {
-        message += `\n**Modifications**:\n` + changes.modified.map(change =>
-            `- ${change.old.family} : ${change.old.label}\n  Old: ${change.old.items.map(item => `${item.price}, ${item.duration}`).join(', ')}\n  New: ${change.new.items.map(item => `${item.price}, ${item.duration}`).join(', ')}`
-        ).join('\n');
-    }
+    let message = `**Changes detected between ${oldFile} and ${newFile}:**\n`;
+
     if (changes.removed.length > 0) {
-        message += `\n**Deletions**:\n` + changes.removed.map(service =>
-            `- ${service.family} : ${service.label} (${service.items.map(item => `${item.price}, ${item.duration}`).join(', ')})`
-        ).join('\n');
+        message += `\n**Removed services**:\n`;
+        message += `\`\`\`json\n${JSON.stringify(changes.removed, null, 2)}\n\`\`\``;
     }
+
+    if (changes.added.length > 0) {
+        message += `\n**New services**:\n`;
+        message += `\`\`\`json\n${JSON.stringify(changes.added, null, 2)}\n\`\`\``;
+    }
+
+    if (changes.modified.length > 0) {
+        message += `\n**Updated services**:\n`;
+        message += `\`\`\`json\n${JSON.stringify(changes.modified, null, 2)}\n\`\`\``;
+    }
+
     if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
         message += "\nNo specific changes detected";
     }
 
     try {
-        await axios.post(DISCORD_WEBHOOK_URL, { content: message });
+        // Split message if it exceeds Discord's 2000 character limit
+        const messages = [];
+        let currentMessage = '';
+        for (const line of message.split('\n')) {
+            if (currentMessage.length + line.length + 1 > 2000) {
+                messages.push(currentMessage);
+                currentMessage = line;
+            } else {
+                currentMessage += (currentMessage ? '\n' : '') + line;
+            }
+        }
+        if (currentMessage) messages.push(currentMessage);
+
+        for (const msg of messages) {
+            await axios.post(DISCORD_WEBHOOK_URL, { content: msg });
+        }
         console.log('Changes successfully sent to Discord');
     } catch (error) {
         console.error('Error sending to Discord:', error.message);
