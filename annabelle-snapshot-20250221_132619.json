@@ -1988,20 +1988,25 @@
     "label": "Mesotherapie virtuelle Skinshooter visage et cou",
     "items": [
       {
-        "description": "",
+        "description": "[UPDATE]",
         "duration": "1h",
         "price": "72 €"
+      },
+      {
+        "description": "[ADD]",
+        "duration": "[ADD]",
+        "price": "[ADD]"
       }
     ]
   },
   {
     "family": "Visage",
-    "label": "Skinshooter Yeux",
+    "label": "[ADD] Mesotherapie virtuelle Skinshooter visage et cou",
     "items": [
       {
         "description": "",
-        "duration": "30min",
-        "price": "35 €"
+        "duration": "1h",
+        "price": "72 €"
       }
     ]
   }
