@@ -319,23 +319,26 @@ class DiscordNotifier {
 
         sections.push(`**🔍 Changements détectés**`);
         sections.push(`📁 Comparaison: \`${previousFile}\` → \`${currentFile}\``);
-        sections.push('');
 
         if (changes.removed.length > 0) {
+            sections.push(''); // Saut de ligne
             sections.push(this._formatRemovedSection(changes.removed));
         }
 
         if (changes.added.length > 0) {
+            sections.push(''); // Saut de ligne
             sections.push(this._formatAddedSection(changes.added));
         }
 
         if (changes.modified.length > 0) {
+            sections.push(''); // Saut de ligne
             sections.push(this._formatModifiedSection(changes.modified));
         }
 
         if (changes.added.length === 0 && 
             changes.modified.length === 0 && 
             changes.removed.length === 0) {
+            sections.push('');
             sections.push('ℹ️  Aucun changement spécifique détecté');
         }
 
@@ -348,7 +351,7 @@ class DiscordNotifier {
         removed.forEach((change, index) => {
             const item = change.item;
             lines.push(`\`${index + 1}.\` **${change.family}** › ${change.label}`);
-            lines.push(`   └ ${item.description || 'Sans description'} • ${item.duration} • ~~${item.price}~~`);
+            lines.push(`   └ ${item.description || 'Sans description'} • ${item.duration} • ${item.price}`);
         });
 
         return lines.join('\n');
@@ -360,7 +363,7 @@ class DiscordNotifier {
         added.forEach((change, index) => {
             const item = change.item;
             lines.push(`\`${index + 1}.\` **${change.family}** › ${change.label}`);
-            lines.push(`   └ ${item.description || 'Sans description'} • ${item.duration} • **${item.price}**`);
+            lines.push(`   └ ${item.description || 'Sans description'} • ${item.duration} • ${item.price}`);
         });
 
         return lines.join('\n');
@@ -383,10 +386,10 @@ class DiscordNotifier {
                     changes.push(`Description: "${before.description}" → "${after.description}"`);
                 }
                 if (before.duration !== after.duration) {
-                    changes.push(`Durée: ${before.duration} → ${after.duration}`);
+                    changes.push(`Durée: ~~${before.duration}~~ → ${after.duration}`);
                 }
                 if (before.price !== after.price) {
-                    changes.push(`Prix: ~~${before.price}~~ → **${after.price}**`);
+                    changes.push(`Prix: ~~${before.price}~~ → ${after.price}`);
                 }
                 
                 changes.forEach(c => lines.push(`   └ ${c}`));
