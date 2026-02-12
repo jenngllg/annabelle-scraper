@@ -322,15 +322,15 @@ class DiscordNotifier {
         sections.push('');
 
         if (changes.removed.length > 0) {
-            sections.push(this._formatSection('❌ Services supprimés', changes.removed, 'removed'));
+            sections.push(this._formatRemovedSection(changes.removed));
         }
 
         if (changes.added.length > 0) {
-            sections.push(this._formatSection('✅ Nouveaux services', changes.added, 'added'));
+            sections.push(this._formatAddedSection(changes.added));
         }
 
         if (changes.modified.length > 0) {
-            sections.push(this._formatSection('🔄 Services modifiés', changes.modified, 'modified'));
+            sections.push(this._formatModifiedSection(changes.modified));
         }
 
         if (changes.added.length === 0 && 
@@ -342,20 +342,58 @@ class DiscordNotifier {
         return sections.join('\n');
     }
 
-    static _formatSection(title, items, type) {
-        const formattedData = type === 'modified' 
-            ? items.map(change => ({
-                family: change.family,
-                label: change.label,
-                items: change.items
-            }))
-            : items.map(change => ({
-                family: change.family,
-                label: change.label,
-                items: [change.item]
-            }));
+    static _formatRemovedSection(removed) {
+        const lines = [`**❌ Services supprimés (${removed.length}):**`];
+        
+        removed.forEach((change, index) => {
+            const item = change.item;
+            lines.push(`\`${index + 1}.\` **${change.family}** › ${change.label}`);
+            lines.push(`   └ ${item.description || 'Sans description'} • ${item.duration} • ~~${item.price}~~`);
+        });
 
-        return `**${title}**:\n\`\`\`json\n${JSON.stringify(formattedData, null, 2)}\n\`\`\``;
+        return lines.join('\n');
+    }
+
+    static _formatAddedSection(added) {
+        const lines = [`**✅ Nouveaux services (${added.length}):**`];
+        
+        added.forEach((change, index) => {
+            const item = change.item;
+            lines.push(`\`${index + 1}.\` **${change.family}** › ${change.label}`);
+            lines.push(`   └ ${item.description || 'Sans description'} • ${item.duration} • **${item.price}**`);
+        });
+
+        return lines.join('\n');
+    }
+
+    static _formatModifiedSection(modified) {
+        const lines = [`**🔄 Services modifiés (${modified.length}):**`];
+        
+        modified.forEach((change, index) => {
+            lines.push(`\`${index + 1}.\` **${change.family}** › ${change.label}`);
+            
+            change.items.forEach(itemChange => {
+                const before = itemChange.before;
+                const after = itemChange.after;
+                
+                // Détection du type de modification
+                const changes = [];
+                
+                if (before.description !== after.description) {
+                    changes.push(`Description: "${before.description}" → "${after.description}"`);
+                }
+                if (before.duration !== after.duration) {
+                    changes.push(`Durée: ${before.duration} → ${after.duration}`);
+                }
+                if (before.price !== after.price) {
+                    changes.push(`Prix: ~~${before.price}~~ → **${after.price}**`);
+                }
+                
+                changes.forEach(c => lines.push(`   └ ${c}`));
+            });
+        });
+
+        return lines.join('\n');
     }
 
     static async _sendToDiscord(message) {
